@@ -1,4 +1,4 @@
-package com.example.demo.entity;
+package com.repay.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

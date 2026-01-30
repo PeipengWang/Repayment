@@ -1,12 +1,9 @@
-package com.example.demo.entity;
+package com.repay.entity;
 
 import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.math.BigDecimal;
-
-import static com.example.demo.constant.CONSTANT.ROUND_MODE;
-import static com.example.demo.constant.CONSTANT.SCALE;
 
 @Data
 @Accessors(chain = true)

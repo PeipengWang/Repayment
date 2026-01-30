@@ -1,10 +1,11 @@
-package com.example.demo.controller;
+package com.repay.controller;
 
-import com.example.demo.entity.EqualPrincipalRepayRequest;
-import com.example.demo.entity.EqualPrincipalRepayResponse;
-import com.example.demo.entity.PeriodRepay;
-import com.example.demo.entity.RepayCalculationState;
-import com.example.demo.service.RepayCalculator;
+import com.repay.entity.EqualPrincipalRepayRequest;
+import com.repay.entity.EqualPrincipalRepayResponse;
+import com.repay.entity.PeriodRepay;
+import com.repay.entity.RepayCalculationState;
+import com.repay.service.RepayCalculator;
+import com.repay.constant.CONSTANT;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,8 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.example.demo.constant.CONSTANT.*;
 
 /**
  * 等额本金还款计算 Controller
@@ -48,11 +47,11 @@ public class EqualPrincipalRepayController {
         RepayCalculationState repayCalculationState = new RepayCalculationState();
         // 1. 获取请求参数
         BigDecimal annualRate = request.getAnnualRate();
-        BigDecimal loanTotal = request.getLoanTotal().setScale(SCALE, ROUND_MODE);
+        BigDecimal loanTotal = request.getLoanTotal().setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
         Integer years = request.getYears();
         int totalMonths = years * 12;  //需要还款总月数
         //首月还款数
-        BigDecimal monthlyPrincipal = loanTotal.divide(new BigDecimal(totalMonths), SCALE, ROUND_MODE);
+        BigDecimal monthlyPrincipal = loanTotal.divide(new BigDecimal(totalMonths), CONSTANT.SCALE, CONSTANT.ROUND_MODE);
         //剩余本金
         BigDecimal remainingPrincipal = loanTotal;
         //获取所有提前还款年份
@@ -77,7 +76,7 @@ public class EqualPrincipalRepayController {
             // 计算当月利息和还款额
             BigDecimal monthlyInterest = repayCalculator.getMonthlyInterest(remainingPrincipal, annualRate);
             // 更新剩余本金
-            remainingPrincipal = remainingPrincipal.subtract(monthlyPrincipal).setScale(SCALE, ROUND_MODE);
+            remainingPrincipal = remainingPrincipal.subtract(monthlyPrincipal).setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
             if (remainingPrincipal.compareTo(BigDecimal.ZERO) < 0) {
                 remainingPrincipal = BigDecimal.ZERO;
             }
@@ -92,7 +91,7 @@ public class EqualPrincipalRepayController {
                 monthTotalPrincipal = monthlyPrincipal.add(prepayMoneyCurrentMonth);
                 //重新计算每月还款本金
                 monthlyPrincipal = remainingPrincipal.divide(new BigDecimal(totalMonths).subtract(new BigDecimal(month)),
-                        SCALE, ROUND_MODE);
+                        CONSTANT.SCALE, CONSTANT.ROUND_MODE);
             }
             // 封装当月明细
             monthlyDetails.add(setMonthDetail(month, monthTotalPrincipal, monthlyInterest, remainingPrincipal));

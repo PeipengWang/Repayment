@@ -9,7 +9,7 @@
         <relativePath/>
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>demo</artifactId>
+    <artifactId>Repayment</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>demo</name>
     <description>等额本金还款计算（含提前还款）</description>

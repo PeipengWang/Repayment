@@ -1,4 +1,4 @@
-package com.example.demo.entity;
+package com.repay.entity;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

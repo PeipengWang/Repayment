@@ -1,7 +1,6 @@
-package com.example.demo.service;
+package com.repay.service;
 
-import com.example.demo.entity.PayMoneyEntity;
-import com.example.demo.entity.Prepayment;
+import com.repay.entity.Prepayment;
 
 import java.math.BigDecimal;
 import java.util.List;

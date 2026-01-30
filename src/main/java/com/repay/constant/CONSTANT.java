@@ -1,4 +1,4 @@
-package com.example.demo.constant;
+package com.repay.constant;
 
 import java.math.RoundingMode;
 

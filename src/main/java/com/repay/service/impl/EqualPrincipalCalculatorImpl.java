@@ -1,15 +1,14 @@
-package com.example.demo.service.impl;
+package com.repay.service.impl;
 
-import com.example.demo.entity.Prepayment;
-import com.example.demo.service.RepayCalculator;
+import com.repay.entity.Prepayment;
+import com.repay.service.RepayCalculator;
+import com.repay.constant.CONSTANT;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.example.demo.constant.CONSTANT.*;
 
 /**
  * 等额本金计算实现类（含提前还款逻辑）
@@ -23,8 +22,8 @@ public class EqualPrincipalCalculatorImpl implements RepayCalculator {
     @Override
     public BigDecimal getMonthlyInterest(BigDecimal remainingPrincipal, BigDecimal annualRate) {
         // 月利率 = 年利率 / 12 / 100 = 年利率 / 1200
-        BigDecimal monthlyRate = annualRate.divide(new BigDecimal(1200), 6, ROUND_MODE);
-        return remainingPrincipal.multiply(monthlyRate).setScale(SCALE, ROUND_MODE);
+        BigDecimal monthlyRate = annualRate.divide(new BigDecimal(1200), 6, CONSTANT.ROUND_MODE);
+        return remainingPrincipal.multiply(monthlyRate).setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
     }
 
     /**
@@ -38,7 +37,7 @@ public class EqualPrincipalCalculatorImpl implements RepayCalculator {
         }
         for (Prepayment prepayment : prepayments) {
             // 提前还款金额保留2位小数
-            BigDecimal amount = prepayment.getAmount().setScale(SCALE, ROUND_MODE);
+            BigDecimal amount = prepayment.getAmount().setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
             prepayMap.put(prepayment.getMonth(), amount);
         }
         return prepayMap;
@@ -46,6 +45,6 @@ public class EqualPrincipalCalculatorImpl implements RepayCalculator {
 
     @Override
     public BigDecimal getMonthlyPrincipal(int totalMonths, int nowMonth, BigDecimal remainingPrincipal) {
-       return remainingPrincipal.divide(new BigDecimal(totalMonths - nowMonth), SCALE, ROUND_MODE);
+       return remainingPrincipal.divide(new BigDecimal(totalMonths - nowMonth), CONSTANT.SCALE, CONSTANT.ROUND_MODE);
     }
 }
