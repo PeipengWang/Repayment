@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.entity.PayMoneyEntity;
 import com.example.demo.entity.Prepayment;
 
 import java.math.BigDecimal;
@@ -25,4 +26,10 @@ public interface RepayCalculator {
      * @return key=还款月份，value=提前还款金额
      */
     Map<Integer, BigDecimal> getAllPrepayMoney(List<Prepayment> prepayments);
+
+    /**
+     * 计算当月应还本金
+     * @return  当月应还本金
+     */
+    BigDecimal getMonthlyPrincipal(int totalMonths, int nowMonth, BigDecimal remainingPrincipal);
 }

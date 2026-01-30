@@ -33,4 +33,7 @@ public class EqualPrincipalRepayRequest {
 
     @Schema(description = "提前还款列表")
     private List<Prepayment> prepayments;
+
+    @Schema(description = "周期性提前还款列表")
+    private List<PeriodRepay> periodicRepayList;
 }

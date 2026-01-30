@@ -43,4 +43,9 @@ public class EqualPrincipalCalculatorImpl implements RepayCalculator {
         }
         return prepayMap;
     }
+
+    @Override
+    public BigDecimal getMonthlyPrincipal(int totalMonths, int nowMonth, BigDecimal remainingPrincipal) {
+       return remainingPrincipal.divide(new BigDecimal(totalMonths - nowMonth), SCALE, ROUND_MODE);
+    }
 }

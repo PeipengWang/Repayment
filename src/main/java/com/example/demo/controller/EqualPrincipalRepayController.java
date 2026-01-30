@@ -2,14 +2,11 @@ package com.example.demo.controller;
 
 import com.example.demo.entity.EqualPrincipalRepayRequest;
 import com.example.demo.entity.EqualPrincipalRepayResponse;
-import com.example.demo.entity.Prepayment;
+import com.example.demo.entity.PeriodRepay;
 import com.example.demo.entity.RepayCalculationState;
 import com.example.demo.service.RepayCalculator;
-import com.sun.source.tree.UsesTree;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.models.security.SecurityScheme;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -63,8 +60,9 @@ public class EqualPrincipalRepayController {
         if(!request.getPrepayments().isEmpty()){
             prepayMoney = repayCalculator.getAllPrepayMoney(request.getPrepayments());
         }
+        //更新周期性还款方式
+        prepayMoney = updatePayMoney(prepayMoney, request.getPeriodicRepayList());
         // 4. 初始化统计变量和结果列表
-
         List<EqualPrincipalRepayResponse.MonthlyDetail> monthlyDetails = new ArrayList<>();
         List<EqualPrincipalRepayResponse.YearSummary> yearSummaries = new ArrayList<>();
 
@@ -88,7 +86,7 @@ public class EqualPrincipalRepayController {
             if(month % period == 0){
 //                prepayMoneyCurrentMonth = prepayMoneyCurrentMonth.add(request.getPeriodPay());
             }
-            if(prepayMoney.containsKey(month) || !prepayMoneyCurrentMonth.equals(BigDecimal.ZERO)){
+            if(prepayMoney.containsKey(month)){
                 prepayMoneyCurrentMonth = prepayMoney.get(month);
                 remainingPrincipal = remainingPrincipal.subtract(prepayMoney.get(month));
                 monthTotalPrincipal = monthlyPrincipal.add(prepayMoneyCurrentMonth);
@@ -163,5 +161,64 @@ public class EqualPrincipalRepayController {
         yearSummary.setYearInterest(yearInterest);
         yearSummary.setYearTotalRepay(yearInterest.add(yearPrincipal));
         return yearSummary;
+    }
+
+
+
+// 假设 PeriodRepay 类的结构（方便理解）
+// class PeriodRepay {
+//     private Integer startMonth;    // 起始月份
+//     private Integer endMonth;      // 结束月份
+//     private Integer cycleMonths;   // 周期月数
+//     private BigDecimal amount;     // 金额
+//     // getter/setter
+// }
+
+    /**
+     * 按周期更新各月份的应还款金额（保留原有金额并累加）
+     * @param prepayMoney 原有月份-金额映射（可为空，内部做兜底）
+     * @param periodRepayList 周期还款列表（可为空，空则直接返回原数据）
+     * @return 更新后的月份-金额映射
+     */
+    private Map<Integer, BigDecimal> updatePayMoney(Map<Integer, BigDecimal> prepayMoney, List<PeriodRepay> periodRepayList) {
+        // 1. 兜底原Map，避免空指针，同时可选创建新Map避免修改入参（根据业务选择）
+        // 如果需要保留原Map不变，用 new HashMap<>(prepayMoney == null ? new HashMap<>() : prepayMoney)
+        Map<Integer, BigDecimal> resultMap = prepayMoney == null ? new HashMap<>() : prepayMoney;
+
+        // 2. 空列表直接返回，避免NPE
+        if (periodRepayList == null || periodRepayList.isEmpty()) {
+            return resultMap;
+        }
+
+        // 3. 遍历每个还款周期
+        for (PeriodRepay periodRepay : periodRepayList) {
+            // 3.1 校验周期数据合法性，避免空指针/死循环
+            if (periodRepay == null
+                    || periodRepay.getStartMonth() == null
+                    || periodRepay.getEndMonth() == null
+                    || periodRepay.getCycleMonths() == null
+                    || periodRepay.getAmount() == null) {
+                continue; // 或抛异常，根据业务容错性选择
+            }
+
+            int startMonth = periodRepay.getStartMonth();
+            int endMonth = periodRepay.getEndMonth();
+            int cycleMonths = periodRepay.getCycleMonths();
+            BigDecimal amount = periodRepay.getAmount();
+
+            // 3.2 校验周期合法性：周期<=0 或 起始>结束，直接跳过
+            if (cycleMonths <= 0 || startMonth > endMonth) {
+                continue; // 或抛IllegalArgumentException
+            }
+
+            // 3.3 循环累加：注意用 <= 包含结束月份（根据业务调整，若不需要则改回 <）
+            // 核心逻辑：保留原有值 + 新增金额
+            for (int i = startMonth; i <= endMonth; i += cycleMonths) {
+                BigDecimal oldAmount = resultMap.getOrDefault(i, BigDecimal.ZERO);
+                resultMap.put(i, oldAmount.add(amount));
+            }
+        }
+
+        return resultMap;
     }
 }
