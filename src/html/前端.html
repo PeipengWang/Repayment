@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>等额本金还款计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #303133;
+            border-bottom: 1px solid #e6e6e6;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .form-item {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .form-item label {
+            width: 120px;
+            text-align: right;
+            padding-right: 10px;
+            color: #606266;
+        }
+        .form-control {
+            flex: 1;
+            max-width: 400px;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+        }
+        .form-control:focus {
+            border-color: #409eff;
+        }
+        .btn {
+            display: inline-block;
+            height: 36px;
+            padding: 0 15px;
+            line-height: 36px;
+            text-align: center;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #409eff;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background-color: #66b1ff;
+        }
+        .btn-default {
+            background-color: #fff;
+            color: #606266;
+            border: 1px solid #dcdfe6;
+            margin-left: 10px;
+        }
+        .btn-default:hover {
+            background-color: #f5f7fa;
+        }
+        .btn-sm {
+            height: 30px;
+            line-height: 30px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+        .btn-danger {
+            background-color: #f56c6c;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background-color: #f78989;
+        }
+        .btn-group {
+            margin-left: 130px;
+            margin-top: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+        table, th, td {
+            border: 1px solid #e6e6e6;
+        }
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #606266;
+            font-weight: normal;
+        }
+        .prepay-table {
+            margin-left: 130px;
+            width: calc(100% - 130px);
+            max-width: 800px;
+        }
+        .result-card {
+            display: none;
+        }
+        .desc-list {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            border: 1px solid #e6e6e6;
+            border-radius: 4px;
+        }
+        .desc-item {
+            width: 25%;
+            padding: 10px;
+            border-bottom: 1px solid #e6e6e6;
+            border-right: 1px solid #e6e6e6;
+        }
+        .desc-item:nth-child(4n) {
+            border-right: none;
+        }
+        .desc-item:last-child {
+            width: 100%;
+            border-right: none;
+        }
+        .desc-item label {
+            color: #606266;
+            font-size: 14px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .desc-item .value {
+            color: #303133;
+            font-size: 16px;
+        }
+        .desc-item .total-value {
+            color: #e6a23c;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .tab-container {
+            border: 1px solid #e6e6e6;
+            border-radius: 4px;
+        }
+        .tab-header {
+            display: flex;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        .tab-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-right: 1px solid #e6e6e6;
+        }
+        .tab-item.active {
+            background-color: #fff;
+            color: #409eff;
+            font-weight: bold;
+        }
+        .tab-content {
+            padding: 10px;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+        .table-container {
+            height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #606266;
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+        .alert {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+            display: none;
+        }
+        .alert-error {
+            background-color: #fef0f0;
+            color: #f56c6c;
+            border: 1px solid #fbc4c4;
+        }
+        .alert-success {
+            background-color: #f0f9ff;
+            color: #67c23a;
+            border: 1px solid #b3e19d;
+        }
+        .alert.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 提示框 -->
+    <div class="alert alert-error" id="errorAlert"></div>
+    <div class="alert alert-success" id="successAlert"></div>
+
+    <!-- 输入表单卡片 -->
+    <div class="card">
+        <div class="card-title">等额本金还款计算器</div>
+        <div class="form-item">
+            <label>贷款总额（元）：</label>
+            <input type="number" step="0.01" class="form-control" id="loanTotal" placeholder="请输入贷款总额，如1000000">
+        </div>
+        <div class="form-item">
+            <label>年利率（%）：</label>
+            <input type="number" step="0.01" class="form-control" id="annualRate" placeholder="请输入年利率，如4.9">
+        </div>
+        <div class="form-item">
+            <label>还款年限：</label>
+            <input type="number" min="1" class="form-control" id="years" placeholder="请输入还款年限，如30">
+        </div>
+        <div class="form-item">
+            <label>提前还款信息：</label>
+            <button class="btn btn-primary btn-sm" onclick="addPrepayment()">添加提前还款</button>
+        </div>
+        <div class="prepay-table">
+            <table id="prepayTable">
+                <thead>
+                <tr>
+                    <th>年份</th>
+                    <th>月份</th>
+                    <th>还款金额（元）</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="prepayTableBody">
+                <!-- 提前还款行动态生成 -->
+                </tbody>
+            </table>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="calculate()">计算还款明细</button>
+            <button class="btn btn-default" onclick="resetForm()">重置</button>
+        </div>
+    </div>
+
+    <!-- 结果展示卡片 -->
+    <div class="card result-card" id="resultCard">
+        <div class="card-title">还款计算结果</div>
+        <!-- 总计信息 -->
+        <div class="desc-list" id="summaryList">
+            <div class="desc-item">
+                <label>贷款总额</label>
+                <div class="value" id="totalLoan">-</div>
+            </div>
+            <div class="desc-item">
+                <label>还款总年限</label>
+                <div class="value" id="totalYears">-</div>
+            </div>
+            <div class="desc-item">
+                <label>总还款本金</label>
+                <div class="value" id="totalPrincipal">-</div>
+            </div>
+            <div class="desc-item">
+                <label>总还款利息</label>
+                <div class="value" id="totalInterest">-</div>
+            </div>
+            <div class="desc-item">
+                <label>总还款金额</label>
+                <div class="value total-value" id="totalRepay">-</div>
+            </div>
+        </div>
+
+        <!-- 标签页：月度/年度明细 -->
+        <div class="tab-container">
+            <div class="tab-header">
+                <div class="tab-item active" onclick="switchTab('monthly')">月度还款明细</div>
+                <div class="tab-item" onclick="switchTab('yearly')">年度还款汇总</div>
+            </div>
+            <div class="tab-content">
+                <div class="tab-panel active" id="monthlyPanel">
+                    <div class="loading" id="monthlyLoading">加载中...</div>
+                    <div class="table-container" id="monthlyTableContainer">
+                        <table id="monthlyTable">
+                            <thead>
+                            <tr>
+                                <th>还款月份</th>
+                                <th>当月本金（元）</th>
+                                <th>当月利息（元）</th>
+                                <th>当月还款总额（元）</th>
+                                <th>剩余本金（元）</th>
+                            </tr>
+                            </thead>
+                            <tbody id="monthlyTableBody">
+                            <!-- 月度明细动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-panel" id="yearlyPanel">
+                    <div class="loading" id="yearlyLoading">加载中...</div>
+                    <div class="table-container" id="yearlyTableContainer">
+                        <table id="yearlyTable">
+                            <thead>
+                            <tr>
+                                <th>还款年度</th>
+                                <th>当年本金（元）</th>
+                                <th>当年利息（元）</th>
+                                <th>当年还款总额（元）</th>
+                            </tr>
+                            </thead>
+                            <tbody id="yearlyTableBody">
+                            <!-- 年度汇总动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 全局配置
+    const CONFIG = {
+        baseURL: 'http://localhost:8080', // 替换为你的后端接口地址
+        timeout: 5000
+    };
+
+    // 提前还款行索引
+    let prepayRowIndex = 0;
+
+    // 显示提示框
+    function showAlert(type, message) {
+        const alertEl = document.getElementById(`${type}Alert`);
+        alertEl.textContent = message;
+        alertEl.classList.add('show');
+        setTimeout(() => {
+            alertEl.classList.remove('show');
+        }, 3000);
+    }
+
+    // 金额格式化
+    function formatMoney(num) {
+        if (!num || isNaN(num)) return '0.00';
+        return Number(num).toLocaleString('zh-CN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // 添加提前还款行
+    function addPrepayment() {
+        const tbody = document.getElementById('prepayTableBody');
+        const row = document.createElement('tr');
+        row.id = `prepayRow_${prepayRowIndex}`;
+        row.innerHTML = `
+                <td><input type="number" class="form-control prepay-year" placeholder="如2026"></td>
+                <td><input type="number" min="1" max="12" class="form-control prepay-month" placeholder="如1"></td>
+                <td><input type="number" step="0.01" class="form-control prepay-amount" placeholder="如50000"></td>
+                <td><button class="btn btn-danger btn-sm" onclick="deletePrepayment(${prepayRowIndex})">删除</button></td>
+            `;
+        tbody.appendChild(row);
+        prepayRowIndex++;
+    }
+
+    // 删除提前还款行
+    function deletePrepayment(index) {
+        const row = document.getElementById(`prepayRow_${index}`);
+        if (row) {
+            row.remove();
+        }
+    }
+
+    // 重置表单
+    function resetForm() {
+        document.getElementById('loanTotal').value = '';
+        document.getElementById('annualRate').value = '';
+        document.getElementById('years').value = '';
+        document.getElementById('prepayTableBody').innerHTML = '';
+        document.getElementById('resultCard').style.display = 'none';
+        prepayRowIndex = 0;
+    }
+
+    // 切换标签页
+    function switchTab(type) {
+        // 切换标签头
+        const tabItems = document.querySelectorAll('.tab-item');
+        tabItems.forEach(item => item.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // 切换标签内容
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        tabPanels.forEach(panel => panel.classList.remove('active'));
+        document.getElementById(`${type}Panel`).classList.add('active');
+    }
+
+    // 收集提前还款数据
+    function getPrepaymentData() {
+        const prepayData = [];
+        const rows = document.querySelectorAll('#prepayTableBody tr');
+        rows.forEach(row => {
+            const year = row.querySelector('.prepay-year').value;
+            const month = row.querySelector('.prepay-month').value;
+            const amount = row.querySelector('.prepay-amount').value;
+            // 过滤空值
+            if (year && month && amount) {
+                prepayData.push({
+                    year: Number(year),
+                    month: Number(month),
+                    amount: Number(amount)
+                });
+            }
+        });
+        return prepayData;
+    }
+
+    // 渲染总计信息
+    function renderSummary(data) {
+        document.getElementById('totalLoan').textContent = `${formatMoney(data.loanTotal)} 元`;
+        document.getElementById('totalYears').textContent = `${data.years} 年（${data.totalMonths} 个月）`;
+        document.getElementById('totalPrincipal').textContent = `${formatMoney(data.totalAllPrincipal)} 元`;
+        document.getElementById('totalInterest').textContent = `${formatMoney(data.totalAllInterest)} 元`;
+        document.getElementById('totalRepay').textContent = `${formatMoney(data.totalAllRepay)} 元`;
+    }
+
+    // 渲染月度明细
+    function renderMonthlyDetails(data) {
+        const tbody = document.getElementById('monthlyTableBody');
+        tbody.innerHTML = '';
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                    <td>${item.month}</td>
+                    <td>${formatMoney(item.monthlyPrincipal)}</td>
+                    <td>${formatMoney(item.monthlyInterest)}</td>
+                    <td>${formatMoney(item.monthlyRepay)}</td>
+                    <td>${formatMoney(item.remainingPrincipal)}</td>
+                `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 渲染年度汇总
+    function renderYearlySummaries(data) {
+        const tbody = document.getElementById('yearlyTableBody');
+        tbody.innerHTML = '';
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                    <td>${item.year}</td>
+                    <td>${formatMoney(item.yearPrincipal)}</td>
+                    <td>${formatMoney(item.yearInterest)}</td>
+                    <td>${formatMoney(item.yearTotalRepay)}</td>
+                `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 显示加载状态
+    function showLoading(show) {
+        document.getElementById('monthlyLoading').classList.toggle('show', show);
+        document.getElementById('yearlyLoading').classList.toggle('show', show);
+    }
+
+    // 原生AJAX请求（替代Axios，避免CDN依赖）
+    function requestPost(url, data, success, error) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json;charset=utf-8');
+        xhr.timeout = CONFIG.timeout;
+
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    success(res);
+                } catch (e) {
+                    error('返回数据格式错误：' + e.message);
+                }
+            } else {
+                error(`请求失败：${xhr.status} ${xhr.statusText}`);
+            }
+        };
+
+        xhr.onerror = function() {
+            error('网络请求异常，请检查后端服务是否启动');
+        };
+
+        xhr.ontimeout = function() {
+            error('请求超时，请重试');
+        };
+
+        xhr.send(JSON.stringify(data));
+    }
+
+    // 提交计算
+    function calculate() {
+        // 获取表单值
+        const loanTotal = document.getElementById('loanTotal').value;
+        const annualRate = document.getElementById('annualRate').value;
+        const years = document.getElementById('years').value;
+
+        // 基础校验
+        if (!loanTotal || !annualRate || !years) {
+            showAlert('error', '请填写必填项：贷款总额、年利率、还款年限');
+            return;
+        }
+
+        const loanTotalNum = Number(loanTotal);
+        const annualRateNum = Number(annualRate);
+        const yearsNum = Number(years);
+
+        if (loanTotalNum <= 0 || annualRateNum <= 0 || yearsNum <= 0) {
+            showAlert('error', '贷款总额、年利率、还款年限必须大于0');
+            return;
+        }
+
+        // 构造请求参数
+        const requestParams = {
+            loanTotal: loanTotalNum,
+            annualRate: annualRateNum,
+            years: yearsNum,
+            prepayments: getPrepaymentData()
+        };
+
+        // 显示加载
+        showLoading(true);
+
+        // 发送请求
+        requestPost(
+            `${CONFIG.baseURL}/demo/api/repay/equal-principal`,
+            requestParams,
+            function(res) {
+                // 隐藏加载
+                showLoading(false);
+
+                // 渲染结果
+                renderSummary(res);
+                renderMonthlyDetails(res.monthlyDetails || []);
+                renderYearlySummaries(res.yearSummaries || []);
+
+                // 显示结果卡片
+                document.getElementById('resultCard').style.display = 'block';
+                showAlert('success', '计算成功！');
+            },
+            function(errMsg) {
+                // 隐藏加载
+                showLoading(false);
+                showAlert('error', errMsg);
+                console.error('计算失败：', errMsg);
+            }
+        );
+    }
+</script>
+</body>
+</html>
