@@ -36,4 +36,7 @@ public class EqualPrincipalRepayRequest {
 
     @Schema(description = "周期性提前还款列表")
     private List<PeriodRepay> periodicRepayList;
+
+    @Schema(description = "保留不还金额")
+    private BigDecimal reservedPrincipal= BigDecimal.ZERO;
 }

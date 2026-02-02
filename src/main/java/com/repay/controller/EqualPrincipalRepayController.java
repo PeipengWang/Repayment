@@ -45,6 +45,7 @@ public class EqualPrincipalRepayController {
     public EqualPrincipalRepayResponse calculateEqualPrincipal(
             @Valid @RequestBody EqualPrincipalRepayRequest request) {
         RepayCalculationState repayCalculationState = new RepayCalculationState();
+
         // 1. 获取请求参数
         BigDecimal annualRate = request.getAnnualRate();
         BigDecimal loanTotal = request.getLoanTotal().setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
@@ -87,11 +88,13 @@ public class EqualPrincipalRepayController {
             }
             if(prepayMoney.containsKey(month)){
                 prepayMoneyCurrentMonth = prepayMoney.get(month);
-                remainingPrincipal = remainingPrincipal.subtract(prepayMoney.get(month));
-                monthTotalPrincipal = monthlyPrincipal.add(prepayMoneyCurrentMonth);
-                //重新计算每月还款本金
-                monthlyPrincipal = remainingPrincipal.divide(new BigDecimal(totalMonths).subtract(new BigDecimal(month)),
-                        CONSTANT.SCALE, CONSTANT.ROUND_MODE);
+                if(remainingPrincipal.subtract(prepayMoneyCurrentMonth).compareTo(request.getReservedPrincipal()) >=0){
+                    remainingPrincipal = remainingPrincipal.subtract(prepayMoney.get(month));
+                    monthTotalPrincipal = monthlyPrincipal.add(prepayMoneyCurrentMonth);
+                    //重新计算每月还款本金
+                    monthlyPrincipal = remainingPrincipal.divide(new BigDecimal(totalMonths).subtract(new BigDecimal(month)),
+                            CONSTANT.SCALE, CONSTANT.ROUND_MODE);
+                }
             }
             // 封装当月明细
             monthlyDetails.add(setMonthDetail(month, monthTotalPrincipal, monthlyInterest, remainingPrincipal));
