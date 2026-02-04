@@ -36,6 +36,7 @@ public class IncomeCalculatorController {
     public IncomeResponse calculateIncome(
             @RequestBody IncomeCalculateRequest incomeCalculateRequest ,
             @RequestParam int targetYear) {
-        return incomeCalculatorService.calculateIncome(incomeCalculateRequest.getProducts(), targetYear);
+
+        return incomeCalculatorService.calculateIncome(incomeCalculateRequest, targetYear);
     }
 }

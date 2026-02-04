@@ -2,6 +2,7 @@ package com.repay.entity.income;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -15,4 +16,6 @@ public class IncomeResponse {
     private AnnualIncome annualIncome;
     /** 各月度收益明细 */
     private List<MonthlyIncome> monthlyIncomeList;
+
+    private BigDecimal totalYearIncome;
 }

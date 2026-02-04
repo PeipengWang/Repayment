@@ -21,11 +21,13 @@ public class IncomeCalculatorService {
 
     /**
      * 核心计算方法：统计指定年份的月度/年度收益
-     * @param products 储蓄产品列表
+     * @param request 储蓄产品列表
      * @param targetYear 统计年份（如2025）
      * @return 收益统计结果
      */
-    public IncomeResponse calculateIncome(List<SavingsProduct> products, int targetYear) {
+    public IncomeResponse calculateIncome(IncomeCalculateRequest request, int targetYear) {
+        List<SavingsProduct> products = request.getProducts();
+        BigDecimal totalYearSalary = request.getSalaryConfig().getMonthlySalary().multiply(new BigDecimal(12));
         // 1. 初始化月度收益容器（1-12月）
         Map<Integer, MonthlyIncome> monthlyIncomeMap = new HashMap<>();
         for (int month = 1; month <= 12; month++) {
@@ -60,7 +62,7 @@ public class IncomeCalculatorService {
         }
 
         // 3. 汇总年度收益
-        AnnualIncome annualIncome = summarizeAnnualIncome(targetYear, monthlyIncomeMap, totalYear);
+        AnnualIncome annualIncome = summarizeAnnualIncome(targetYear, monthlyIncomeMap, totalYear, totalYearSalary);
 
         // 4. 封装响应结果
         IncomeResponse response = new IncomeResponse();
@@ -222,7 +224,7 @@ public class IncomeCalculatorService {
     /**
      * 汇总年度收益
      */
-    private AnnualIncome summarizeAnnualIncome(int year, Map<Integer, MonthlyIncome> monthlyIncomeMap, BigDecimal totalYearPrincipal) {
+    private AnnualIncome summarizeAnnualIncome(int year, Map<Integer, MonthlyIncome> monthlyIncomeMap, BigDecimal totalYears, BigDecimal totalYearSalary ) {
         AnnualIncome annualIncome = new AnnualIncome();
         annualIncome.setYear(year);
         annualIncome.setTotalIncome(BigDecimal.ZERO);
@@ -238,7 +240,10 @@ public class IncomeCalculatorService {
                 annualIncome.getTypeIncomeMap().put(entry.getKey(), old.add(entry.getValue()).setScale(SCALE, ROUND_MODE));
             }
         }
-        annualIncome.setTotalYearIncome(totalYearPrincipal.add(annualIncome.getTotalIncome()));
+        //当年总余额
+        annualIncome.setTotalYearIncome(totalYearSalary.add(totalYears.add(annualIncome.getTotalIncome())));
+        //当年总收益：利息+工资存款
+        annualIncome.setTotalAllIncome(annualIncome.getTotalIncome().add(totalYearSalary));
         // 整理月度收益列表
         annualIncome.setMonthlyIncomeList(monthlyIncomeMap.values().stream()
                 .sorted(Comparator.comparingInt(MonthlyIncome::getMonth))

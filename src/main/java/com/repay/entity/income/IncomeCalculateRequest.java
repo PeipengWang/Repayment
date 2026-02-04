@@ -12,6 +12,7 @@ public class IncomeCalculateRequest {
     private SalaryConfig salaryConfig;     // 新增工资配置
 
     // getter/setter
+    @Data
     public static class SalaryConfig {
         private Integer salaryDay;        // 每月发薪日
         private BigDecimal monthlySalary; // 每月工资金额

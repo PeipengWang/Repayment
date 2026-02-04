@@ -25,8 +25,8 @@ public class ExpenseController {
     @PostMapping("/calculateEmergencyFund")
     public ExpenseCalculateResponse calculateEmergencyFund(@RequestBody ExpenseCalculateRequest request) {
         // 1. 校验参数
-        if (request.getEmergencyMultiple() == null || request.getEmergencyMultiple() < 3 || request.getEmergencyMultiple() > 24) {
-            throw new IllegalArgumentException("应急金倍数需在3-24个月之间");
+        if (request.getEmergencyMultiple() == null || request.getEmergencyMultiple() < 1 ) {
+            throw new IllegalArgumentException("应急金倍数大于1个月");
         }
         if (request.getMonthlyExpenses() == null || request.getAnnualExpenses() == null) {
             throw new IllegalArgumentException("支出数据不能为空");

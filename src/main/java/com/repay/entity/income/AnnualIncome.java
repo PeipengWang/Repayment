@@ -15,6 +15,9 @@ public class AnnualIncome {
     private int year;
     /** 年度总收益（元） */
     private BigDecimal totalIncome;
+
+    /** 年度总收入*/
+    private BigDecimal totalAllIncome;
     /** 各月度收益明细 */
     private List<MonthlyIncome> monthlyIncomeList;
     /** 各类型年度收益明细 */
