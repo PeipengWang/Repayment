@@ -41,6 +41,7 @@ public class ExpenseController {
                 .add(annualTotal)
                 .setScale(2, RoundingMode.HALF_UP); // 保留2位小数，四舍五入
 
+
         // 5. 构造响应结果
         ExpenseCalculateResponse response = new ExpenseCalculateResponse();
         response.setMonthlyTotal(monthlyTotal);
