@@ -44,8 +44,6 @@ public class EqualPrincipalRepayController {
     @Operation(summary = "等额本金还款计算", description = "POST请求-输入贷款总额、年利率、还款年限，返回每月/每年/总计还款信息")
     public EqualPrincipalRepayResponse calculateEqualPrincipal(
             @Valid @RequestBody EqualPrincipalRepayRequest request) {
-        RepayCalculationState repayCalculationState = new RepayCalculationState();
-
         // 1. 获取请求参数
         BigDecimal annualRate = request.getAnnualRate();
         BigDecimal loanTotal = request.getLoanTotal().setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
