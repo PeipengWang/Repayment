@@ -1,9 +1,6 @@
 package com.repay.controller;
 
-import com.repay.entity.EqualPrincipalRepayRequest;
-import com.repay.entity.EqualPrincipalRepayResponse;
-import com.repay.entity.PeriodRepay;
-import com.repay.entity.RepayCalculationState;
+import com.repay.entity.*;
 import com.repay.service.RepayCalculator;
 import com.repay.constant.CONSTANT;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,38 +39,147 @@ public class EqualPrincipalRepayController {
      */
     @PostMapping("/equal-principal")
     @Operation(summary = "等额本金还款计算", description = "POST请求-输入贷款总额、年利率、还款年限，返回每月/每年/总计还款信息")
-    public EqualPrincipalRepayResponse calculateEqualPrincipal(
-            @Valid @RequestBody EqualPrincipalRepayRequest request) {
-        // 1. 获取请求参数
-        BigDecimal annualRate = request.getAnnualRate();
-        BigDecimal loanTotal = request.getLoanTotal().setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
-        Integer years = request.getYears();
-        int totalMonths = years * 12;  //需要还款总月数
-        //首月还款数
-        BigDecimal monthlyPrincipal = loanTotal.divide(new BigDecimal(totalMonths), CONSTANT.SCALE, CONSTANT.ROUND_MODE);
-        //剩余本金
-        BigDecimal remainingPrincipal = loanTotal;
-        //获取所有提前还款年份
+    public CombinationLoanResponse calculateEqualPrincipal(
+            @Valid @RequestBody CombinationLoanRequest request) {
+        CombinationLoanResponse response = new CombinationLoanResponse();
+        // 1. 分别计算商贷和公积金贷明细
+        EqualPrincipalRepayResponse businessResponse = null;
+        EqualPrincipalRepayResponse fundResponse = null;
+
         Map<Integer, BigDecimal> prepayMoney = new HashMap<>();
         if(!request.getPrepayments().isEmpty()){
             prepayMoney = repayCalculator.getAllPrepayMoney(request.getPrepayments());
         }
         //更新周期性还款方式
         prepayMoney = updatePayMoney(prepayMoney, request.getPeriodicRepayList());
+
+
+        // 纯商贷/组合贷：计算商贷明细
+        if ("single".equals(request.getLoanType()) || "combination".equals(request.getLoanType())) {
+            EqualPrincipalRepayRequest businessReq = buildSingleLoanRequest(
+                    request.getBusinessLoanTotal(),
+                    request.getBusinessAnnualRate(),
+                    request.getBusinessYears(),
+                    request.getReservedPrincipal()
+            );
+            businessResponse = calculatorPrincipal(businessReq, prepayMoney);
+            // 设置商贷明细
+            response.setBusinessMonthlyDetails(businessResponse.getMonthlyDetails());
+            response.setBusinessYearSummaries(businessResponse.getYearSummaries());
+            response.setBusinessTotalPrincipal(businessResponse.getTotalAllPrincipal());
+            response.setBusinessTotalInterest(businessResponse.getTotalAllInterest());
+            response.setBusinessTotalRepay(businessResponse.getTotalAllRepay());
+            response.setYears(businessReq.getYears());
+        }
+
+        // 纯公积金/组合贷：计算公积金贷明细
+        if ("fund".equals(request.getLoanType()) || "combination".equals(request.getLoanType())) {
+            EqualPrincipalRepayRequest fundReq = buildSingleLoanRequest(
+                    request.getFundLoanTotal(),
+                    request.getFundAnnualRate(),
+                    request.getFundYears(),
+                    request.getReservedPrincipal()
+            );
+            fundResponse = calculatorPrincipal(fundReq, prepayMoney);
+            // 设置公积金明细
+            response.setFundMonthlyDetails(fundResponse.getMonthlyDetails());
+            response.setFundYearSummaries(fundResponse.getYearSummaries());
+            response.setFundTotalPrincipal(fundResponse.getTotalAllPrincipal());
+            response.setFundTotalInterest(fundResponse.getTotalAllInterest());
+            response.setFundTotalRepay(fundResponse.getTotalAllRepay());
+            response.setYears(fundReq.getYears());
+        }
+
+        // 2. 合并总计（商+公）
+        BigDecimal totalPrincipal = BigDecimal.ZERO;
+        BigDecimal totalInterest = BigDecimal.ZERO;
+        BigDecimal totalRepay = BigDecimal.ZERO;
+
+        if (businessResponse != null) {
+            totalPrincipal = totalPrincipal.add(businessResponse.getTotalAllPrincipal());
+            totalInterest = totalInterest.add(businessResponse.getTotalAllInterest());
+            totalRepay = totalRepay.add(businessResponse.getTotalAllRepay());
+        }
+        if (fundResponse != null) {
+            totalPrincipal = totalPrincipal.add(fundResponse.getTotalAllPrincipal());
+            totalInterest = totalInterest.add(fundResponse.getTotalAllInterest());
+            totalRepay = totalRepay.add(fundResponse.getTotalAllRepay());
+        }
+
+        response.setTotalAllPrincipal(totalPrincipal);
+        response.setTotalAllInterest(totalInterest);
+        response.setTotalAllRepay(totalRepay);
+
+        // 3. 生成合并后的月度明细（单月总还款=商贷+公积金）
+        List<EqualPrincipalRepayResponse.MonthlyDetail> mergeMonthlyDetails = new ArrayList<>();
+        int maxMonths = 0;
+        if (businessResponse != null) maxMonths = Math.max(maxMonths, businessResponse.getTotalMonths());
+        if (fundResponse != null) maxMonths = Math.max(maxMonths, fundResponse.getTotalMonths());
+
+        for (int month = 1; month <= maxMonths; month++) {
+            EqualPrincipalRepayResponse.MonthlyDetail mergeDetail = new EqualPrincipalRepayResponse.MonthlyDetail();
+            mergeDetail.setMonth(month);
+            // 商贷当月明细
+            BigDecimal businessPrincipal = BigDecimal.ZERO;
+            BigDecimal businessInterest = BigDecimal.ZERO;
+            if (businessResponse != null && month <= businessResponse.getMonthlyDetails().size()) {
+                EqualPrincipalRepayResponse.MonthlyDetail bDetail = businessResponse.getMonthlyDetails().get(month - 1);
+                businessPrincipal = bDetail.getMonthlyPrincipal();
+                businessInterest = bDetail.getMonthlyInterest();
+            }
+
+            // 公积金当月明细
+            BigDecimal fundPrincipal = BigDecimal.ZERO;
+            BigDecimal fundInterest = BigDecimal.ZERO;
+            if (fundResponse != null && month <= fundResponse.getMonthlyDetails().size()) {
+                EqualPrincipalRepayResponse.MonthlyDetail fDetail = fundResponse.getMonthlyDetails().get(month - 1);
+                fundPrincipal = fDetail.getMonthlyPrincipal();
+                fundInterest = fDetail.getMonthlyInterest();
+            }
+
+            // 合并当月数据
+            mergeDetail.setMonthlyPrincipal(businessPrincipal.add(fundPrincipal));
+            mergeDetail.setMonthlyInterest(businessInterest.add(fundInterest));
+            mergeDetail.setMonthlyRepay(mergeDetail.getMonthlyPrincipal().add(mergeDetail.getMonthlyInterest()));
+
+            // 剩余本金（取最大的剩余本金）
+            BigDecimal remainingPrincipal = BigDecimal.ZERO;
+            if (businessResponse != null && month <= businessResponse.getMonthlyDetails().size()) {
+                remainingPrincipal = businessResponse.getMonthlyDetails().get(month - 1).getRemainingPrincipal();
+            }
+            if (fundResponse != null && month <= fundResponse.getMonthlyDetails().size()) {
+                BigDecimal fRemaining = fundResponse.getMonthlyDetails().get(month - 1).getRemainingPrincipal();
+                remainingPrincipal = remainingPrincipal.add(fRemaining);
+            }
+            mergeDetail.setRemainingPrincipal(remainingPrincipal);
+
+            mergeMonthlyDetails.add(mergeDetail);
+        }
+        response.setMonthlyDetails(mergeMonthlyDetails);
+        response.setTotalMonths(maxMonths);
+        return response;
+    }
+
+    private EqualPrincipalRepayResponse calculatorPrincipal(EqualPrincipalRepayRequest request, Map<Integer, BigDecimal> prepayMoney){
+        int totalMonths = request.getYears() * 12;  //需要还款总月数
+        //剩余本金
+        BigDecimal remainingPrincipal = request.getLoanTotal();
+        //获取所有提前还款年份
+
         // 4. 初始化统计变量和结果列表
         List<EqualPrincipalRepayResponse.MonthlyDetail> monthlyDetails = new ArrayList<>();
         List<EqualPrincipalRepayResponse.YearSummary> yearSummaries = new ArrayList<>();
-
         BigDecimal totalAllPrincipal = BigDecimal.ZERO; //已还总本金
         BigDecimal totalAllInterest = BigDecimal.ZERO; //已还总利息
         BigDecimal yearPrincipal = BigDecimal.ZERO; //年总本金
         BigDecimal yearInterest = BigDecimal.ZERO; //年总利息
-
-        Integer period = request.getPeriod(); //还款周期
         // 5. 遍历每月计算明细
         for (int month = 1; month <= totalMonths; month++) {
+            //计算当月需要还款本金
+            BigDecimal monthlyPrincipal = remainingPrincipal.divide(new BigDecimal(totalMonths).subtract(new BigDecimal(month-1)),
+                    CONSTANT.SCALE, CONSTANT.ROUND_MODE);
             // 计算当月利息和还款额
-            BigDecimal monthlyInterest = repayCalculator.getMonthlyInterest(remainingPrincipal, annualRate);
+            BigDecimal monthlyInterest = repayCalculator.getMonthlyInterest(remainingPrincipal, request.getAnnualRate());
             // 更新剩余本金
             remainingPrincipal = remainingPrincipal.subtract(monthlyPrincipal).setScale(CONSTANT.SCALE, CONSTANT.ROUND_MODE);
             if (remainingPrincipal.compareTo(BigDecimal.ZERO) < 0) {
@@ -81,17 +187,18 @@ public class EqualPrincipalRepayController {
             }
             BigDecimal prepayMoneyCurrentMonth = BigDecimal.ZERO;
             BigDecimal monthTotalPrincipal = monthlyPrincipal;
-            if(month % period == 0){
-//                prepayMoneyCurrentMonth = prepayMoneyCurrentMonth.add(request.getPeriodPay());
-            }
             if(prepayMoney.containsKey(month)){
                 prepayMoneyCurrentMonth = prepayMoney.get(month);
+                //检查提前还款是否还完剩余本金
                 if(remainingPrincipal.subtract(prepayMoneyCurrentMonth).compareTo(request.getReservedPrincipal()) >=0){
+                    //当前提前还款无法还完
                     remainingPrincipal = remainingPrincipal.subtract(prepayMoney.get(month));
                     monthTotalPrincipal = monthlyPrincipal.add(prepayMoneyCurrentMonth);
-                    //重新计算每月还款本金
-                    monthlyPrincipal = remainingPrincipal.divide(new BigDecimal(totalMonths).subtract(new BigDecimal(month)),
-                            CONSTANT.SCALE, CONSTANT.ROUND_MODE);
+                    prepayMoney.remove(month);
+                }else {
+                    BigDecimal subtract1 = prepayMoneyCurrentMonth.subtract(remainingPrincipal);
+                    prepayMoney.put(month, subtract1);
+                    remainingPrincipal = BigDecimal.ZERO;
                 }
             }
             // 封装当月明细
@@ -113,16 +220,35 @@ public class EqualPrincipalRepayController {
         }
         // 6. 封装总计信息
         BigDecimal totalAllRepay = totalAllPrincipal.add(totalAllInterest);
-        return new EqualPrincipalRepayResponse()
-                .setMonthlyDetails(monthlyDetails)
-                .setYearSummaries(yearSummaries)
-                .setTotalAllPrincipal(totalAllPrincipal)
-                .setTotalAllInterest(totalAllInterest)
-                .setTotalAllRepay(totalAllRepay)
-                .setLoanTotal(loanTotal)
-                .setAnnualRate(annualRate)
-                .setYears(years)
-                .setTotalMonths(totalMonths);
+        EqualPrincipalRepayResponse repayResponse = new EqualPrincipalRepayResponse();
+        repayResponse.setMonthlyDetails(monthlyDetails);
+        repayResponse.setYearSummaries(yearSummaries);
+        repayResponse.setTotalAllPrincipal(totalAllPrincipal);
+        repayResponse.setTotalAllInterest(totalAllInterest);
+        repayResponse.setTotalAllRepay(totalAllRepay);
+        repayResponse.setLoanTotal(request.getLoanTotal());
+        repayResponse.setAnnualRate(request.getAnnualRate());
+        repayResponse.setYears(request.getYears());
+        repayResponse.setTotalMonths(totalMonths);
+        return repayResponse;
+
+    }
+
+    /**
+     * 构建单笔贷款请求参数
+     */
+    private EqualPrincipalRepayRequest buildSingleLoanRequest(
+            BigDecimal loanTotal,
+            BigDecimal annualRate,
+            Integer years,
+            BigDecimal reservedPrincipal) {
+        EqualPrincipalRepayRequest req = new EqualPrincipalRepayRequest();
+        req.setLoanTotal(loanTotal);
+        req.setAnnualRate(annualRate);
+        req.setYears(years);
+        req.setReservedPrincipal(reservedPrincipal);
+
+        return req;
     }
 
     /**
@@ -162,17 +288,6 @@ public class EqualPrincipalRepayController {
         yearSummary.setYearTotalRepay(yearInterest.add(yearPrincipal));
         return yearSummary;
     }
-
-
-
-// 假设 PeriodRepay 类的结构（方便理解）
-// class PeriodRepay {
-//     private Integer startMonth;    // 起始月份
-//     private Integer endMonth;      // 结束月份
-//     private Integer cycleMonths;   // 周期月数
-//     private BigDecimal amount;     // 金额
-//     // getter/setter
-// }
 
     /**
      * 按周期更新各月份的应还款金额（保留原有金额并累加）

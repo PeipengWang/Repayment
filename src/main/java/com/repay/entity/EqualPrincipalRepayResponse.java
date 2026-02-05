@@ -12,7 +12,7 @@ import java.util.List;
  */
 @Data
 @Schema(name = "EqualPrincipalRepayResponse", description = "等额本金还款计算结果（含提前还款）")
-@Accessors(chain = true)
+//@Accessors(chain = true)
 public class EqualPrincipalRepayResponse {
     // 基础参数
     @Schema(description = "贷款总额（元）")
@@ -32,6 +32,14 @@ public class EqualPrincipalRepayResponse {
     @Schema(description = "每年还款汇总列表")
     private List<YearSummary> yearSummaries;
 
+    @Schema(description = "每月公积金还款明细列表")
+    private List<MonthlyDetail> fundMonthlyDetails;
+    @Schema(description = "每年公积金还款汇总列表")
+    private List<YearSummary> fundYearSummaries;
+    @Schema(description = "每月商贷款还款明细列表")
+    private List<MonthlyDetail> businessMonthlyDetails;
+    @Schema(description = "每年商贷款还款明细列表")
+    private List<YearSummary> businessYearSummaries;
     // 总计信息
     @Schema(description = "累计总还本金（元）")
     private BigDecimal totalAllPrincipal;
