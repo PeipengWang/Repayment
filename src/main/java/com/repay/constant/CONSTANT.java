@@ -10,4 +10,5 @@ public class CONSTANT {
     public static final int SCALE = 2;
     // 四舍五入模式
     public static final RoundingMode ROUND_MODE = RoundingMode.HALF_UP;
+
 }

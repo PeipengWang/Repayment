@@ -2,7 +2,6 @@ package com.repay.controller;
 
 import com.repay.entity.*;
 import com.repay.service.RepayCalculator;
-import com.repay.constant.CONSTANT;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -19,6 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.repay.constant.CONSTANT.ROUND_MODE;
+import static com.repay.constant.CONSTANT.SCALE;
+
 /**
  * 等额本金还款计算 Controller
  * POST 接口（JSON 参数）实现还款计算
@@ -26,7 +28,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/repay")
 @Tag(name = "还款计算接口", description = "等额本金还款计算相关接口")
-public class EqualPrincipalRepayController {
+public class EqualInterestRepayController {
     // 金融计算精度：保留2位小数，四舍五入
     @Qualifier(value = "EqualPrincipalParamValidator")
     @Autowired
@@ -37,8 +39,8 @@ public class EqualPrincipalRepayController {
      * @param request 贷款参数（JSON 格式）
      * @return 完整的还款计算结果（JSON 格式）
      */
-    @PostMapping("/equal-principal")
-    @Operation(summary = "等额本金还款计算", description = "POST请求-输入贷款总额、年利率、还款年限，返回每月/每年/总计还款信息")
+    @PostMapping("/equal-interest")
+    @Operation(summary = "等额本息还款计算", description = "POST请求-输入贷款总额、年利率、还款年限，返回每月/每年/总计还款信息")
     public CombinationLoanResponse calculateEqualPrincipal(
             @Valid @RequestBody CombinationLoanRequest request) {
         CombinationLoanResponse response = new CombinationLoanResponse();
@@ -53,11 +55,12 @@ public class EqualPrincipalRepayController {
         //更新周期性还款方式
         prepayMoney = repayCalculator.updatePayMoney(prepayMoney, request.getPeriodicRepayList());
 
-        //计算所有贷款（公积金+商贷）方式
-        businessResponse = repayCalculator.businessResponse(request, prepayMoney, response, "equalPrincipal");
-        fundResponse = repayCalculator.fundResponse(request, prepayMoney, response, "equalPrincipal");
-        repayCalculator.getTotalResponse(businessResponse, fundResponse, response);
 
+        //计算所有贷款（公积金+商贷）方式
+        businessResponse = repayCalculator.businessResponse(request, prepayMoney, response, "equalInterest");
+        fundResponse = repayCalculator.fundResponse(request, prepayMoney, response,"equalInterest");
+        repayCalculator.getTotalResponse(businessResponse, fundResponse, response);
         return response;
     }
+
 }
